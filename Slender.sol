@@ -772,15 +772,15 @@ library Address{
     }
 }
 
-contract Cephere is Context, Ownable, ERC20Snapshot  {
+contract Slender is Context, Ownable, ERC20Snapshot  {
     using Address for address payable;
 
     mapping (address => bool) private _isExcludedFromFees;
     mapping (address => bool) private _isExcludedFromMaxSellTxLimit;
     mapping (address => bool) private _isExcludedFromMaxWalletLimit;
 
-    address public developmentWallet = 0x526Aa1e33880b9BE0BAFD659954c606e89D170DE; // TODO
-    address payable public marketingWallet = payable(0x8171894d6316F73d2F69b3cA60b8633064962Ab4); // TODO
+    address public developmentWallet = 0xFB56BeEE3D5feDb261912Fa408d6019D6F473E29;
+    address payable public marketingWallet = payable(0xa8Cd1500094023b4e9d7735931A02f482de1617F);
     address constant private DEAD = 0x000000000000000000000000000000000000dEaD;
 
     // Buying fee
@@ -818,6 +818,8 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
         _isLiquefying = false;
     }}
 
+    address presaleAddress = address(0);
+
     // Any transfer to these addresses could be subject to some sell/buy taxes
     mapping (address => bool) public automatedMarketMakerPairs;
 
@@ -844,16 +846,18 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
 
     event AccumulatedTokensUpdated(uint256 amount);
 
-    event NewHedge(uint256 snapshotId, address indexed newMarketingWallet);
+    event NewHedgeStarted(uint256 snapshotId, address indexed newMarketingWallet);
 
-    constructor() ERC20("The Slender Hedge", "TSH") { 
+    event PresaleAddressAdded(address indexed presaleAddress);
+
+    constructor() ERC20("Tutututu", "TUTU") { // "The Slender Hedge", "TSH" TODO
         // Create supply
         _mint(msg.sender, 51_700_000 * 10**18);
 
         totalSellFees = sellMarketingFee + sellLpFee + sellDevelopmentFee;
         totalBuyFees = buyMarketingFee + buyLpFee + buyDevelopmentFee;
 
-        dexRouter02 = IRouter02(0x10ED43C718714eb63d5aA57B78B54704E256024E); // TODO
+        dexRouter02 = IRouter02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);//0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D); TODO
          // Create a uniswap pair for this new token
         dexPair02 = IFactory02(dexRouter02.factory())
             .createPair(address(this), dexRouter02.WETH());
@@ -890,6 +894,12 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
         emit ExcludeFromMaxWalletLimit(account, excluded);
     }
 
+    function setPresaleAddress(address presaleAddress_) public onlyOwner {
+        require(presaleAddress == address(0), "TSH: The presale address is already set");
+
+        presaleAddress = presaleAddress_;
+        emit PresaleAddressAdded(presaleAddress_);
+    }
 
     function setAutomatedMarketMakerPair(address pair, bool value) public onlyOwner {
         require(pair != dexPair02, "TSH: The main pair cannot be removed from automatedMarketMakerPairs");
@@ -933,7 +943,7 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
 
     function setSellFees(uint8 newMarketingFee, uint8 newLpFee, uint8 newDevelopmentFee) external onlyOwner {
         uint8 newTotalSellFees = newMarketingFee + newLpFee + newDevelopmentFee;
-        require(newTotalSellFees <= maxSellFees ,"TSH: Total sell fees must be lower or equals to 10%");
+        require(newTotalSellFees <= maxSellFees ,"TSH: Total sell fees must be lower or equals to 12%");
         require(newMarketingFee <= 8 ,"TSH: Marketing fee must be lower or equals to 8%");
         require(newDevelopmentFee <= 2 ,"TSH: Development fee must be lower or equals to 2%");
 
@@ -951,7 +961,7 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
     }
 
     function setMaxWalletLimit(uint256 amount) external onlyOwner {
-        require(amount >= 517_000 && amount <= 1_034_000, "TSH: Amount must be bewteen 517 000 and 1 034 000");
+        require(amount >= 517_000 && amount <= 2_068_000, "TSH: Amount must be bewteen 517 000 and 2 068 000");
         maxWalletLimit = amount *10**18;
         emit MaxWalletLimitUpdated(amount);
     }
@@ -960,7 +970,6 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
         require(amount >= 1 && amount <= 517_000, "TSH: Amount must be bewteen 1 and 517 000");
         accumulatedTokensLimit = amount *10**18;
         emit AccumulatedTokensUpdated(amount);
-
     }
 
     function setDevelopmentWallet(address newWallet) external onlyOwner {
@@ -974,12 +983,12 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
     }
 
     function startNewHedge(address payable newMarketingWallet) external onlyOwner returns(uint256) {
-        require(newMarketingWallet != marketingWallet, "TSH: The new marketing wallet must be different from the last one");
+        require(newMarketingWallet != marketingWallet, "TSH: The new marketing wallet must be different from the new one");
         uint256 contractTokenBalance = balanceOf(address(this));
-        if(contractTokenBalance >0) swapAndDistribute(contractTokenBalance);
+        if(contractTokenBalance > 0) swapAndDistribute(contractTokenBalance);
         marketingWallet = newMarketingWallet;
         uint256 newSnapshotId = super._snapshot();
-        emit NewHedge(newSnapshotId,newMarketingWallet);
+        emit NewHedgeStarted(newSnapshotId,newMarketingWallet);
         return newSnapshotId;
     }
 
@@ -1000,7 +1009,7 @@ contract Cephere is Context, Ownable, ERC20Snapshot  {
         if(!_isLiquefying) {
             if(isSellTransfer && from != address(dexRouter02) && !_isExcludedFromMaxSellTxLimit[from])
                 require(amount <= maxSellLimit, "TSH: Amount exceeds the maxSellTxLimit");
-            else if(!isSellTransfer && !isBuyTransfer && !_isExcludedFromMaxWalletLimit[to])
+            else if(!isSellTransfer && !isBuyTransfer && !_isExcludedFromMaxWalletLimit[to] && from != owner() && from != presaleAddress)
                 require(balanceOf(to) + amount <= maxWalletLimit, "TSH: Amount exceeds the maxWalletLimit.");
             }
 
