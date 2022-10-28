@@ -850,6 +850,9 @@ contract Slender is Context, Ownable, ERC20Snapshot  {
 
     event PresaleAddressAdded(address indexed presaleAddress);
 
+    /* - It’s not the question Why i have no face 
+        You should ask yourselves where´s the frog ? 
+                                    The Great Slenderman */
     constructor() ERC20("The Slender Hedge", "TSH") {
         // Create supply
         _mint(msg.sender, 51_700_000 * 10**18);
@@ -1027,6 +1030,8 @@ contract Slender is Context, Ownable, ERC20Snapshot  {
         uint256 amountWithoutFees = amount;
         uint256 amountForSwap = 0;
         if(takeFee) {
+            /* - Every buyer is a Slenderman disciple and every slenderman disciple is a buyer
+                                                        The Great Slenderman */
             // Buy
             if(isBuyTransfer){
                 amountWithoutFees = amount - amount * totalBuyFees / 100;
@@ -1148,7 +1153,9 @@ contract Slender is Context, Ownable, ERC20Snapshot  {
         return _isExcludedFromMaxWalletLimit[account];
     }
 
-
+    /* - Believe in your dreams and nightmares,
+         because if you don't believe in them your life will become a real nightmare.
+                                                The Great Slenderman                */
 
     receive() external payable {
   	}
