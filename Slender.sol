@@ -850,14 +850,14 @@ contract Slender is Context, Ownable, ERC20Snapshot  {
 
     event PresaleAddressAdded(address indexed presaleAddress);
 
-    constructor() ERC20("Tutututu", "TUTU") { // "The Slender Hedge", "TSH" TODO
+    constructor() ERC20("The Slender Hedge", "TSH") {
         // Create supply
         _mint(msg.sender, 51_700_000 * 10**18);
 
         totalSellFees = sellMarketingFee + sellLpFee + sellDevelopmentFee;
         totalBuyFees = buyMarketingFee + buyLpFee + buyDevelopmentFee;
 
-        dexRouter02 = IRouter02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);//0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D); TODO
+        dexRouter02 = IRouter02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
          // Create a uniswap pair for this new token
         dexPair02 = IFactory02(dexRouter02.factory())
             .createPair(address(this), dexRouter02.WETH());
